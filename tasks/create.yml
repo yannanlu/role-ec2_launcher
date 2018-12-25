@@ -40,6 +40,7 @@
     image: "{{image_id}}"
     instance_tags:
       Name: "{{instance_tag | default(key_name + '_test')}}"
+    count: "{{ec2_count}}"
     user_data: "{{lookup('file', 'files/user_data.sh')}}"
     volumes:
       - device_name: "{{ami_info.results[0].root_device_name}}"
@@ -64,7 +65,7 @@
     port: 22
     state: started
     delay: 60
-    timeout: 320
+    timeout: "{{wait_for_up}}"
   with_items: "{{basic_ec2.instances}}"
   when: basic_ec2.instances|length > 0
 
@@ -79,7 +80,7 @@
 
 - name: Pause for a while
   pause:
-    seconds: "{{pause_sec}}" 
+    seconds: "{{pause_sec}}"
   when: basic_ec2.instances|length > 0 and pause_sec > 0
 
 - name: Add new instances to the group
@@ -87,6 +88,8 @@
     name: "{{item.public_dns_name}}"
     ansible_user: "{{default_user}}"
     instance_id: "{{item.id}}"
+    private_name: "{{item.private_dns_name}}"
+    private_ip: "{{item.private_ip}}"
     groups: ec2hosts
   with_items: "{{basic_ec2.instances}}"
   when: basic_ec2.instances is defined

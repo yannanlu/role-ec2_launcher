@@ -4,11 +4,13 @@ region: us-east-2
 key_name: ylu
 instance_type: t2.micro
 image_id: ami-8b92b4ee
-vpc_id: vpc-e8c95f81
-subnet_id: subnet-5e7cd125
+vpc_id: vpc-bd94a7d5
+subnet_id: subnet-de9606a4
 iam_role: S3GetRole
+ec2_count: 1
 default_user: ec2-user 
-pause_for_up: 15
+wait_for_up: 360
+pause_for_up: 20
 
 sg_rules:
   - proto: tcp
@@ -16,24 +18,12 @@ sg_rules:
     to_port: 22
     cidr_ip: 170.140.0.0/16
   - proto: tcp
-    from_port: 22
-    to_port: 22
-    cidr_ip: 75.131.197.0/24
-  - proto: tcp
     from_port: 2812
     to_port: 2812
     cidr_ip: 170.140.0.0/16
   - proto: tcp
-    from_port: 2812
-    to_port: 2812
-    cidr_ip: 75.131.197.0/24
-  - proto: tcp
     from_port: 443
     to_port: 443
     cidr_ip: 170.140.0.0/16
-  - proto: tcp
-    from_port: 443
-    to_port: 443
-    cidr_ip: 75.131.197.0/24
 
 extra_sg_rules: []

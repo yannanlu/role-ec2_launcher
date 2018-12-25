@@ -6,3 +6,21 @@
 
 - include: create.yml    # create the instance in case no such instance
   when: ec2_info.instances|length == 0
+
+- name: Get ec2 security group facts (boto3 required)
+  ec2_group_facts:
+    profile: "{{profile}}"
+    region: "{{region}}"
+    filters:
+      vpc_id: "{{vpc_id}}"
+      group_name: "{{sg_name|default(key_name + '_sg')}}"
+  register: ec2_sg_info
+
+- name: Get ec2 subnet cidr facts (boto3 required)
+  ec2_vpc_subnet_facts:
+    profile: "{{profile}}"
+    region: "{{region}}"
+    filters:
+      vpc_id: "{{vpc_id}}"
+      subnet_id: "{{subnet_id}}"
+  register: ec2_subnet_info

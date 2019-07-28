@@ -1,0 +1,64 @@
+---
+- name: Initialize empty lists
+  set_fact:
+    sg_list: []
+    mq_list: []
+    sg_rules: "{{my_sg_rules}} + {{my_extra_sg_rules}}"
+
+- name: Merge mq_list
+  set_fact:
+    mq_list: "{{mq_list}} + ['{{item.from_port}}-{{item.to_port}}:{{item.cidr_ip}}']"
+  with_items: "{{sg_rules|unique}}"
+  no_log: True
+
+- name: Merge sg_list
+  set_fact:
+    sg_list: "{{sg_list}} + ['{{item.0.from_port}}-{{item.0.to_port}}:{{item.1.cidr_ip}}']"
+  with_subelements:
+    - "{{sg_info[0].ip_permissions}}"
+    - ip_ranges
+  when: sg_info is defined and sg_info|length > 0
+  no_log: True
+
+- name: Display rules to be added
+  set_fact:
+    msg: "{{item}}"
+  with_items: "{{mq_list|unique|difference(sg_list)}}"
+  run_once: True
+
+- name: Display rules to be removed
+  set_fact:
+    msg: "{{item}}"
+  with_items: "{{sg_list|unique|difference(mq_list)}}"
+  run_once: True
+
+- name: Update security group with profile in {{region}}
+  become: no
+  local_action:
+    module: ec2_group
+    name: "{{sg_info[0].group_name}}"
+    profile: "{{profile}}"
+    description: "{{sg_info[0].description}}"
+    region: "{{region}}"
+    vpc_id: "{{sg_info[0].vpc_id}}"
+    rules: "{{sg_rules|unique}}"
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+  when: profile != 'tower' and (mq_list|difference(sg_list)|length > 0 or sg_list|difference(mq_list)|length > 0)
+  run_once: True
+
+- name: Update security group with tower in {{region}}
+  become: no
+  local_action:
+    module: ec2_group
+    name: "{{sg_info[0].group_name}}"
+    description: "{{sg_info[0].description}}"
+    region: "{{region}}"
+    vpc_id: "{{sg_info[0].vpc_id}}"
+    rules: "{{sg_rules|unique}}"
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+  when: profile == 'tower' and (mq_list|difference(sg_list)|length > 0 or sg_list|difference(mq_list)|length > 0)
+  run_once: True

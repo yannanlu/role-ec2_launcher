@@ -1,22 +1,30 @@
 ---
-- name: Query facts on the AMI
+- name: Query facts on the AMI with profile in {{region}}
   ec2_ami_find:
     profile: "{{profile}}"
     region: "{{region}}"
-    ami_id: "{{ec2_info.instances[0].image_id}}"
-  register: ami_info
+    ami_id: "{{ec2_info[0].image_id}}"
+  when: profile != 'tower'
+  register: ami_info_p
+
+- name: Query facts on the AMI with tower in {{region}}
+  ec2_ami_find:
+    region: "{{region}}"
+    ami_id: "{{ec2_info[0].image_id}}"
+  when: profile == 'tower'
+  register: ami_info_k
 
 - name: Reset the default user for Ubuntu
   set_fact:
     default_user: ubuntu
-  when: ami_info.results[0].name|search("ubuntu")
+  when: (ami_info_p.results is defined and ami_info_p.results|length > 0 and ami_info_p.results[0].name is search('ubuntu')) or (ami_info_k.results is defined and ami_info_k.results|length > 0 and ami_info_k.results[0].name is search('ubuntu'))
 
 - name: Reset the default user for CentOS
   set_fact:
     default_user: centos
-  when: ami_info.results[0].name|search("CentOS")
+  when: (ami_info_p.results is defined and ami_info_p.results|length > 0 and ami_info_p.results[0].name is search('CentOS')) or (ami_info_k.results is defined and ami_info_k.results|length > 0 and ami_info_k.results[0].name is search('CentOS'))
 
-- name: Add existing instances to the group
+- name: Add public dns name of existing instances to host group in {{region}}
   add_host:
     name: "{{item.public_dns_name}}"
     ansible_user: "{{default_user}}"
@@ -24,5 +32,22 @@
     private_name: "{{item.private_dns_name}}"
     private_ip: "{{item.private_ip_address}}"
     groups: ec2hosts
-  with_items: "{{ec2_info.instances}}"
+  with_items: "{{ec2_info}}"
+  loop_control:
+    label: "id: {{item.id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip_address}}, user: {{default_user}}"
+  when: ec2_publicly_accessible
+  changed_when: False
+
+- name: Add private ip of existing instances to host group
+  add_host:
+    name: "{{item.private_ip_address}}"
+    ansible_user: "{{default_user}}"
+    instance_id: "{{item.id}}"
+    private_name: "{{item.private_dns_name}}"
+    private_ip: "{{item.private_ip_address}}"
+    groups: ec2hosts
+  with_items: "{{ec2_info}}"
+  loop_control:
+    label: "id: {{item.id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip_address}}, user: {{default_user}}"
+  when: not ec2_publicly_accessible
   changed_when: False

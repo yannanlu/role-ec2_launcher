@@ -1,0 +1,39 @@
+---
+- name: Set ec2_subnet_info
+  set_fact:
+    ec2_subnet_info: []
+  when: ec2_subnet_info is not defined
+
+- name: Get ec2 subnet facts with profile (boto3 required)
+  ec2_vpc_subnet_facts:
+    profile: "{{profile}}"
+    region: "{{region}}"
+    filters:
+      vpc_id: "{{vpc_id}}"
+      subnet_id: "{{item}}"
+  with_items: "{{my_subnet_ids}}"
+  when: profile != 'tower'
+  register: ec2_subnet_info_p
+
+- name: Add subnet to ec2_subnet_info with profile in {{region}}
+  set_fact:
+    ec2_subnet_info: "{{ec2_subnet_info}} + [{{item.subnets[0]}}]"
+  with_items: "{{ec2_subnet_info_p.results}}"
+  loop_control:
+    label: "{{item.item}}"
+  when: profile != 'tower'
+
+- name: Get ec2 subnet facts with tower (boto3 and Ansible 2.5+ required)
+  ec2_vpc_subnet_facts:
+    region: "{{region}}"
+    subnet_ids: "{{my_subnet_ids}}"
+  when: profile == 'tower'
+  register: ec2_subnet_info_k
+
+- name: Add subnet to ec2_subnet_info with tower in {{region}}
+  set_fact:
+    ec2_subnet_info: "{{ec2_subnet_info}} + [{{item}}]"
+  with_items: "{{ec2_subnet_info_k.subnets}}"
+  loop_control:
+    label: "{{item.id}}: {{item.cidr_block}}"
+  when: profile == 'tower'

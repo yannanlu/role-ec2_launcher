@@ -1,0 +1,51 @@
+---
+- name: Launch EC2 instances with profile in {{region}}
+  ec2:
+    key_name: "{{key_name}}"
+    profile: "{{profile}}"
+    region: "{{region}}"
+    group_id: "{{basic_sg_p.group_id}}"
+    instance_type: "{{instance_type}}"
+    image: "{{image_id}}"
+    instance_tags:
+      Name: "{{instance_tag | default(key_name + '_test')}}"
+      Service: "{{service_tag | default('test_' + key_name)}}"
+      Env: "{{env_tag | default('test')}}"
+    count: "{{ec2_count}}" 
+    user_data: "{{lookup('file', 'files/user_data.sh')}}"
+    volumes:
+      - device_name: "{{ami_info_p.results[0].root_device_name}}"
+        volume_size: "{{volume_size}}"
+        delete_on_termination: true
+    vpc_subnet_id: "{{subnet_item}}"
+    assign_public_ip: "{{ec2_publicly_accessible}}" 
+    instance_profile_name: "{{iam_role}}"
+    wait: yes
+  when: basic_sg_p.group_id is defined and ami_info_p.results|length > 0
+  register: basic_ec2
+
+- name: Add public dns name of new instance to host group
+  add_host:
+    name: "{{item.public_dns_name}}"
+    ansible_user: "{{default_user}}"
+    instance_id: "{{item.id}}"
+    private_name: "{{item.private_dns_name}}"
+    private_ip: "{{item.private_ip}}"
+    groups: ec2hosts
+  with_items: "{{basic_ec2.instances}}"
+  loop_control:
+    label: "subnet: {{subnet_item}}, id: {{item.id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip}}, user: {{default_user}}"
+  when: basic_ec2.instances is defined and ec2_publicly_accessible
+
+- name: Add private ip of new instance to host group
+  add_host:
+    name: "{{item.private_ip}}"
+    ansible_user: "{{default_user}}"
+    instance_id: "{{item.id}}"
+    private_name: "{{item.private_dns_name}}"
+    private_ip: "{{item.private_ip}}"
+    groups: ec2hosts
+  with_items: "{{basic_ec2.instances}}"
+  loop_control:
+    label: "subnet: {{subnet_item}}, id: {{item.id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip}}, user: {{default_user}}"
+  when: basic_ec2.instances is defined and not ec2_publicly_accessible

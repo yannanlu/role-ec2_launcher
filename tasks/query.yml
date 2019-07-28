@@ -1,15 +1,47 @@
 ---
-- name: Get ec2 instance facts
+- name: Set ec2_info_s
+  set_fact:
+    ec2_info_s: []
+  when: ec2_info_s is not defined
+
+- name: Get facts on ec2 instances with profile in {{region}}
   ec2_remote_facts:
     profile: "{{profile}}"
     region: "{{region}}"
     filters:
-      instance-state-name: running
       "tag:Name": "{{instance_tag | default(key_name + '_test')}}"
-  register: ec2_info
+      "tag:Service": "{{service_tag | default('test_' + key_name)}}"
+      "tag:Env": "{{env_tag | default('test')}}"
+  when: profile != 'tower'
+  register: ec2_info_p
 
-- name: Display ec2_info
-  debug:
-    msg: "id: {{item.id}}, hostname: {{item.public_dns_name}}"
-  with_items: "{{ec2_info.instances}}"
-  when: ec2_info.instances|length > 0
+- name: Add instance to ec2_info_s with profile in {{region}}
+  set_fact:
+    ec2_info_s: "{{ec2_info_s}} + [{{item}}]"
+  with_items: "{{ec2_info_p.instances}}"
+  loop_control:
+    label: "state: {{item.state}}, id: {{item.id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip_address}}"
+  when:
+    - ec2_info_p.instances is defined
+    - item.state not in ['shuting-down', 'terminated']
+
+- name: Get facts on ec2 instances with tower in {{region}}
+  ec2_remote_facts:
+    region: "{{region}}"
+    filters:
+      key_name: "{{key_name}}"
+      "tag:Name": "{{instance_tag | default(key_name + '_test')}}"
+      "tag:Service": "{{service_tag | default('test_' + key_name)}}"
+      "tag:Env": "{{env_tag | default('test')}}"
+  when: profile == 'tower'
+  register: ec2_info_k
+
+- name: Add instance to ec2_info_s with tower in {{region}}
+  set_fact:
+    ec2_info_s: "{{ec2_info_s}} + [{{item}}]"
+  with_items: "{{ec2_info_k.instances}}"
+  loop_control:
+    label: "state: {{item.state}}, id: {{item.id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip_address}}"
+  when:
+    - ec2_info_k.instances is defined
+    - item.state not in ['shuting-down', 'terminated']

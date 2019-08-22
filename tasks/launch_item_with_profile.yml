@@ -14,14 +14,14 @@
     count: "{{ec2_count}}" 
     user_data: "{{lookup('file', 'files/user_data.sh')}}"
     volumes:
-      - device_name: "{{ami_info_p.results[0].root_device_name}}"
+      - device_name: "{{ami_info_p.images[0].root_device_name}}"
         volume_size: "{{volume_size}}"
         delete_on_termination: true
     vpc_subnet_id: "{{subnet_item}}"
     assign_public_ip: "{{ec2_publicly_accessible}}" 
     instance_profile_name: "{{iam_role}}"
     wait: yes
-  when: basic_sg_p.group_id is defined and ami_info_p.results|length > 0
+  when: basic_sg_p.group_id is defined and ami_info_p.images|length > 0
   register: basic_ec2
 
 - name: Add public dns name of new instance to host group

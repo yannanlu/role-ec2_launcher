@@ -1,10 +1,10 @@
 # role-ec2_launcher
 
-This is a repo of Ansible role to launch or terminate EC2 instances. It supports both public VPC or private VPC, as long as there is a route to reach the private ips on the private VPC. It also supports Ansible Core and Ansible Tower. In case you want to use Ansible Tower to provision EC2 instances, make sure to overwrite the value of profile to _tower_ in your Tower template.
+This is a repo of Ansible role to launch or terminate EC2 instances. It supports both public VPC or private VPC, as long as there is a route to reach the private ips on the private VPC. It also supports Ansible Core and Ansible Tower. In case you want to use Ansible Tower to provision EC2 instances, make sure to overwrite the value of profile to _tower_ in your Tower template. Due to some new EC2 modules used in this role, it requires Ansible 2.5+.
 
 ## Status
 
-Tested with images of Ubuntu 16.04, CentOS 7 and RedHat 7 with Ansible 2.3.1 and Python2.7
+Tested with images of Ubuntu 16.04, CentOS 7 and RedHat 7 with Ansible 2.6.0 and Python 3.7.4
 
 ## Description
 
@@ -30,7 +30,7 @@ In order to use this role, some of the variables are required to be specified or
 
 If the value of profile is set to _tower_, this role will assume AWS credentials are defined in the envrionment variables. So it will not use profile to select the account.
 
-The role requires boto and boto3 installed.
+The role requires boto and boto3 installed. It also requires Ansible 2.5+.
 
 ## Author
 Yannan Lu <yannanlu@yahoo.com>

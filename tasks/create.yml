@@ -1,28 +1,28 @@
 ---
 - name: Query facts on the AMI with profile in {{region}}
-  ec2_ami_find:
+  ec2_ami_facts:
     profile: "{{profile}}"
     region: "{{region}}"
-    ami_id: "{{image_id}}"
+    image_ids: "{{image_id}}"
   when: profile != 'tower'
   register: ami_info_p
 
 - name: Query facts on the AMI with tower in {{region}}
-  ec2_ami_find:
+  ec2_ami_facts:
     region: "{{region}}"
-    ami_id: "{{image_id}}"
+    image_ids: "{{image_id}}"
   when: profile == 'tower'
   register: ami_info_k
 
 - name: Set the default user for Ubuntu
   set_fact:
     default_user: ubuntu
-  when: (ami_info_p.results is defined and ami_info_p.results|length > 0 and ami_info_p.results[0].name is search('ubuntu')) or (ami_info_k.results is defined and ami_info_k.results|length > 0 and ami_info_k.results[0].name is search('ubuntu'))
+  when: (ami_info_p.images is defined and ami_info_p.images|length > 0 and ami_info_p.images[0].name is search('ubuntu')) or (ami_info_k.images is defined and ami_info_k.images|length > 0 and ami_info_k.images[0].name is search('ubuntu'))
 
 - name: Set the default user for CentOS
   set_fact:
     default_user: centos
-  when: (ami_info_p.results is defined and ami_info_p.results|length > 0 and ami_info_p.results[0].name is search('CentOS')) or (ami_info_k.results is defined and ami_info_k.results|length > 0 and ami_info_k.results[0].name is search('CentOS'))
+  when: (ami_info_p.images is defined and ami_info_p.images|length > 0 and ami_info_p.images[0].name is search('CentOS')) or (ami_info_k.images is defined and ami_info_k.images|length > 0 and ami_info_k.images[0].name is search('CentOS'))
 
 - name: Create security group with profile in {{region}}
   ec2_group:
@@ -35,7 +35,7 @@
     rules_egress:
       - proto: all
         cidr_ip: 0.0.0.0/0
-  when: profile != 'tower' and ami_info_p.results|length > 0
+  when: profile != 'tower' and ami_info_p.images|length > 0
   register: basic_sg_p
 
 - name: Create security group with tower in {{region}}
@@ -48,20 +48,20 @@
     rules_egress:
       - proto: all
         cidr_ip: 0.0.0.0/0
-  when: profile == 'tower' and ami_info_k.results|length > 0
+  when: profile == 'tower' and ami_info_k.images|length > 0
   register: basic_sg_k
 
 - include: launch_item_with_profile.yml
   with_items: "{{subnet_ids}}"
   loop_control:
     loop_var: subnet_item
-  when: profile != 'tower' and basic_sg_p.group_id is defined and ami_info_p.results|length > 0
+  when: profile != 'tower' and basic_sg_p.group_id is defined and ami_info_p.images|length > 0
 
 - include: launch_item_with_tower.yml
   with_items: "{{subnet_ids}}"
   loop_control:
     loop_var: subnet_item
-  when: profile == 'tower' and basic_sg_k.group_id is defined and ami_info_k.results|length > 0
+  when: profile == 'tower' and basic_sg_k.group_id is defined and ami_info_k.images|length > 0
 
 - name: Wait for all instances to fullly come up
   wait_for:

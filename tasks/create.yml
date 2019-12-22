@@ -40,6 +40,9 @@
 
 - name: Create security group with tower in {{region}}
   ec2_group:
+    access_key: "{{assumed_role.sts.access_key|default(None)}}"
+    secret_key: "{{assumed_role.sts.secret_key|default(None)}}"
+    security_token: "{{assumed_role.sts.session_token|default(None)}}"
     name: "{{sg_name | default(key_name + '_sg')}}"
     description: "A Security group for {{service_tag}} on {{env_tag}}"
     region: "{{region}}"

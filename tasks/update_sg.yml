@@ -52,6 +52,9 @@
   become: no
   local_action:
     module: ec2_group
+    access_key: "{{assumed_role.sts.access_key|default(None)}}"
+    secret_key: "{{assumed_role.sts.secret_key|default(None)}}"
+    security_token: "{{assumed_role.sts.session_token|default(None)}}"
     name: "{{sg_info[0].group_name}}"
     description: "{{sg_info[0].description}}"
     region: "{{region}}"

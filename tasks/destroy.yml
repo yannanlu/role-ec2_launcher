@@ -5,6 +5,7 @@
   ec2:
     state: 'absent'
     profile: "{{profile}}"
+    security_token: "{{session_token|default(None)}}"
     region: "{{region}}"
     instance_ids: "{{item.instance_id}}"
   with_items: "{{ec2_info_s}}"
@@ -14,6 +15,9 @@
 
 - name: Terminate instances with tower in {{region}}
   ec2:
+    access_key: "{{assumed_role.sts.access_key|default(None)}}"
+    secret_key: "{{assumed_role.sts.secret_key|default(None)}}"
+    security_token: "{{assumed_role.sts.session_token|default(None)}}"
     state: 'absent'
     region: "{{region}}"
     instance_ids: "{{item.instance_id}}"
@@ -63,6 +67,9 @@
 
 - name: Take security group down with tower in {{region}}
   ec2_group:
+    access_key: "{{assumed_role.sts.access_key|default(None)}}"
+    secret_key: "{{assumed_role.sts.secret_key|default(None)}}"
+    security_token: "{{assumed_role.sts.session_token|default(None)}}"
     name: "{{sg_name|default(key_name + '_sg')}}"
     region: "{{region}}"
     state: 'absent'

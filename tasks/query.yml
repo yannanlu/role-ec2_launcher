@@ -1,4 +1,12 @@
 ---
+- name: Assume Role for AWS Account in {{region}}
+  sts_assume_role:
+    role_arn: "arn:aws:iam::{{account_id}}:role/rhedcloud/EmoryAnsibleServiceRole"
+    role_session_name: "EmoryAnsibleServiceRole"
+    region: "{{region}}"
+  register: assumed_role
+  when: account_id is defined and assumed_role is not defined
+
 - name: Set ec2_info_s
   set_fact:
     ec2_info_s: []
@@ -21,13 +29,16 @@
     ec2_info_s: "{{ec2_info_s}} + [{{item}}]"
   with_items: "{{ec2_info_p.instances}}"
   loop_control:
-    label: "state: {{item.state.name}}, id: {{item.instance_id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip_address}}"
+    label: "state: {{item.state.name}}, id: {{item.instance_id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip_address}}, az: {{item.placement.availability_zone}}"
   when:
     - ec2_info_p.instances is defined
     - item.state.name not in ['shutting-down', 'terminated']
 
 - name: Get facts on ec2 instances with tower in {{region}}
   ec2_instance_facts:
+    access_key: "{{assumed_role.sts.access_key|default(None)}}"
+    secret_key: "{{assumed_role.sts.secret_key|default(None)}}"
+    security_token: "{{assumed_role.sts.session_token|default(None)}}"
     region: "{{region}}"
     filters:
       instance-state-name: ["pending", "running", "stopping", "stopped"]
@@ -42,7 +53,7 @@
     ec2_info_s: "{{ec2_info_s}} + [{{item}}]"
   with_items: "{{ec2_info_k.instances}}"
   loop_control:
-    label: "state: {{item.state.name}}, id: {{item.instance_id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip_address}}"
+    label: "state: {{item.state.name}}, id: {{item.instance_id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip_address}}, az: {{item.placement.availability_zone}}"
   when:
     - ec2_info_k.instances is defined
     - item.state.name not in ['shutting-down', 'terminated']

@@ -22,6 +22,9 @@
 
 - name: Get ec2 subnet facts with tower (boto3 and Ansible 2.5+ required)
   ec2_vpc_subnet_facts:
+    access_key: "{{assumed_role.sts.access_key|default(None)}}"
+    secret_key: "{{assumed_role.sts.secret_key|default(None)}}"
+    security_token: "{{assumed_role.sts.session_token|default(None)}}"
     region: "{{region}}"
     subnet_ids: "{{my_subnet_ids}}"
   when: profile == 'tower'

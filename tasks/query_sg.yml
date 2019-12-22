@@ -24,6 +24,9 @@
 
 - name: Get ec2 security group facts with tower (boto3 required)
   ec2_group_facts:
+    access_key: "{{assumed_role.sts.access_key|default(None)}}"
+    secret_key: "{{assumed_role.sts.secret_key|default(None)}}"
+    security_token: "{{assumed_role.sts.session_token|default(None)}}"
     region: "{{region}}"
     filters:
       vpc_id: "{{vpc_id}}"

@@ -3,6 +3,7 @@
   ec2:
     key_name: "{{key_name}}"
     profile: "{{profile}}"
+    security_token: "{{session_token|default(None)}}"
     region: "{{region}}"
     group_id: "{{basic_sg_p.group_id}}"
     instance_type: "{{instance_type}}"
@@ -31,10 +32,11 @@
     instance_id: "{{item.id}}"
     private_name: "{{item.private_dns_name}}"
     private_ip: "{{item.private_ip}}"
+    az: "{{item.placement}}"
     groups: ec2hosts
   with_items: "{{basic_ec2.instances}}"
   loop_control:
-    label: "subnet: {{subnet_item}}, id: {{item.id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip}}, user: {{default_user}}"
+    label: "subnet: {{subnet_item}}, id: {{item.id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip}}, user: {{default_user}}, az: {{item.placement}}"
   when: basic_ec2.instances is defined and ec2_publicly_accessible
 
 - name: Add private ip of new instance to host group
@@ -44,8 +46,9 @@
     instance_id: "{{item.id}}"
     private_name: "{{item.private_dns_name}}"
     private_ip: "{{item.private_ip}}"
+    az: "{{item.placement}}"
     groups: ec2hosts
   with_items: "{{basic_ec2.instances}}"
   loop_control:
-    label: "subnet: {{subnet_item}}, id: {{item.id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip}}, user: {{default_user}}"
+    label: "subnet: {{subnet_item}}, id: {{item.id}}, hostname: {{item.public_dns_name}}, private_ip: {{item.private_ip}}, user: {{default_user}}, az: {{item.placement}}"
   when: basic_ec2.instances is defined and not ec2_publicly_accessible

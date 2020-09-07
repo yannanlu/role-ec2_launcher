@@ -38,6 +38,7 @@
     module: ec2_group
     name: "{{sg_info[0].group_name}}"
     profile: "{{profile}}"
+    security_token: "{{session_token|default(None)}}"
     description: "{{sg_info[0].description}}"
     region: "{{region}}"
     vpc_id: "{{sg_info[0].vpc_id}}"
@@ -45,23 +46,6 @@
     rules_egress:
       - proto: all
         cidr_ip: 0.0.0.0/0
-  when: profile != 'tower' and (mq_list|difference(sg_list)|length > 0 or sg_list|difference(mq_list)|length > 0)
-  run_once: True
-
-- name: Update security group with tower in {{region}}
-  become: no
-  local_action:
-    module: ec2_group
-    access_key: "{{assumed_role.sts.access_key|default(None)}}"
-    secret_key: "{{assumed_role.sts.secret_key|default(None)}}"
-    security_token: "{{assumed_role.sts.session_token|default(None)}}"
-    name: "{{sg_info[0].group_name}}"
-    description: "{{sg_info[0].description}}"
-    region: "{{region}}"
-    vpc_id: "{{sg_info[0].vpc_id}}"
-    rules: "{{sg_rules|unique}}"
-    rules_egress:
-      - proto: all
-        cidr_ip: 0.0.0.0/0
-  when: profile == 'tower' and (mq_list|difference(sg_list)|length > 0 or sg_list|difference(mq_list)|length > 0)
+    tags: "{{sg_info[0].tags}}"
+  when: mq_list|difference(sg_list)|length > 0 or sg_list|difference(mq_list)|length > 0
   run_once: True

@@ -1,0 +1,12 @@
+---
+- name: Get current caller identity info with profile in {{region}}
+  aws_caller_facts:
+    region: "{{region}}"
+    profile: "{{profile}}"
+    security_token: "{{session_token|default(None)}}"
+  register: caller_info
+
+- name: Display caller info with profile
+  debug:
+    msg: "{{caller_info.arn}}"
+  when: caller_info.arn is defined

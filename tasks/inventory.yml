@@ -2,30 +2,20 @@
 - name: Query facts on the AMI with profile in {{region}}
   ec2_ami_facts:
     profile: "{{profile}}"
+    security_token: "{{session_token|default(None)}}"
     region: "{{region}}"
-    image_ids: "{{ec2_info[0].image_id}}"
-  when: profile != 'tower'
-  register: ami_info_p
+    image_ids: "{{image_id}}"
+  register: ami_info
 
-- name: Query facts on the AMI with tower in {{region}}
-  ec2_ami_facts:
-    access_key: "{{assumed_role.sts.access_key|default(None)}}"
-    secret_key: "{{assumed_role.sts.secret_key|default(None)}}"
-    security_token: "{{assumed_role.sts.session_token|default(None)}}"
-    region: "{{region}}"
-    image_ids: "{{ec2_info[0].image_id}}"
-  when: profile == 'tower'
-  register: ami_info_k
-
-- name: Reset the default user for Ubuntu
+- name: Set the default user for Ubuntu
   set_fact:
     default_user: ubuntu
-  when: (ami_info_p.images is defined and ami_info_p.images|length > 0 and ami_info_p.images[0].name is search('ubuntu')) or (ami_info_k.images is defined and ami_info_k.images|length > 0 and ami_info_k.images[0].name is search('ubuntu'))
+  when: ami_info.images is defined and ami_info.images|length > 0 and ami_info.images[0].name is search('ubuntu')
 
-- name: Reset the default user for CentOS
+- name: Set the default user for CentOS
   set_fact:
     default_user: centos
-  when: (ami_info_p.images is defined and ami_info_p.images|length > 0 and ami_info_p.images[0].name is search('CentOS')) or (ami_info_k.images is defined and ami_info_k.images|length > 0 and ami_info_k.images[0].name is search('CentOS'))
+  when: ami_info.images is defined and ami_info.images|length > 0 and ami_info.images[0].name is search('CentOS')
 
 - name: Add public dns name of existing instances to host group in {{region}}
   add_host:

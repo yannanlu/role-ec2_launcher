@@ -2,69 +2,45 @@
 - name: Query facts on the AMI with profile in {{region}}
   ec2_ami_facts:
     profile: "{{profile}}"
+    security_token: "{{session_token|default(None)}}"
     region: "{{region}}"
     image_ids: "{{image_id}}"
-  when: profile != 'tower'
-  register: ami_info_p
-
-- name: Query facts on the AMI with tower in {{region}}
-  ec2_ami_facts:
-    region: "{{region}}"
-    image_ids: "{{image_id}}"
-  when: profile == 'tower'
-  register: ami_info_k
+  register: ami_info
 
 - name: Set the default user for Ubuntu
   set_fact:
     default_user: ubuntu
-  when: (ami_info_p.images is defined and ami_info_p.images|length > 0 and ami_info_p.images[0].name is search('ubuntu')) or (ami_info_k.images is defined and ami_info_k.images|length > 0 and ami_info_k.images[0].name is search('ubuntu'))
+  when: ami_info.images is defined and ami_info.images|length > 0 and ami_info.images[0].name is search('ubuntu')
 
 - name: Set the default user for CentOS
   set_fact:
     default_user: centos
-  when: (ami_info_p.images is defined and ami_info_p.images|length > 0 and ami_info_p.images[0].name is search('CentOS')) or (ami_info_k.images is defined and ami_info_k.images|length > 0 and ami_info_k.images[0].name is search('CentOS'))
+  when: ami_info.images is defined and ami_info.images|length > 0 and ami_info.images[0].name is search('CentOS')
 
 - name: Create security group with profile in {{region}}
   ec2_group:
     name: "{{sg_name | default(key_name + '_sg')}}"
     description: "A Security group for {{service_tag}} on {{env_tag}}"
     profile: "{{profile}}"
+    security_token: "{{session_token|default(None)}}"
     region: "{{region}}"
     vpc_id: "{{vpc_id}}"
     rules: "{{sg_rules}} + {{extra_sg_rules}}"
     rules_egress:
       - proto: all
         cidr_ip: 0.0.0.0/0
-  when: profile != 'tower' and ami_info_p.images|length > 0
-  register: basic_sg_p
-
-- name: Create security group with tower in {{region}}
-  ec2_group:
-    access_key: "{{assumed_role.sts.access_key|default(None)}}"
-    secret_key: "{{assumed_role.sts.secret_key|default(None)}}"
-    security_token: "{{assumed_role.sts.session_token|default(None)}}"
-    name: "{{sg_name | default(key_name + '_sg')}}"
-    description: "A Security group for {{service_tag}} on {{env_tag}}"
-    region: "{{region}}"
-    vpc_id: "{{vpc_id}}"
-    rules: "{{sg_rules}} + {{extra_sg_rules}}"
-    rules_egress:
-      - proto: all
-        cidr_ip: 0.0.0.0/0
-  when: profile == 'tower' and ami_info_k.images|length > 0
-  register: basic_sg_k
+    tags:
+      Name: "{{sg_name | default(key_name + '_sg')}}"
+      Service: "{{service_tag | default('test_' + key_name)}}"
+      Env: "{{env_tag | default('test')}}"
+  when: ami_info.images|length > 0
+  register: basic_sg
 
 - include: launch_item_with_profile.yml
   with_items: "{{subnet_ids}}"
   loop_control:
     loop_var: subnet_item
-  when: profile != 'tower' and basic_sg_p.group_id is defined and ami_info_p.images|length > 0
-
-- include: launch_item_with_tower.yml
-  with_items: "{{subnet_ids}}"
-  loop_control:
-    loop_var: subnet_item
-  when: profile == 'tower' and basic_sg_k.group_id is defined and ami_info_k.images|length > 0
+  when: basic_sg.group_id is defined and ami_info.images|length > 0
 
 - name: Wait for all instances to fullly come up
   wait_for:

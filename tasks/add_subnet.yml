@@ -1,0 +1,15 @@
+---
+- name: Get vpc subnet facts with profile in {{region}}
+  ec2_vpc_subnet_facts:
+    profile: "{{profile}}"
+    security_token: "{{session_token|default(None)}}"
+    region: "{{region}}"
+    filters:
+      vpc_id: "{{vpc_id}}"
+  when: subnet_ids|length == 0
+  register: vpc_info_p
+
+- name: Add the default subnet_id to subnet_ids in {{region}}
+  set_fact:
+    subnet_ids: "{{subnet_ids}} + ['{{vpc_info_p.subnets[0].id}}']"
+  when: vpc_info_p is changed

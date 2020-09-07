@@ -4,7 +4,7 @@ which apt
 if [ $? = 0 ]
 then
   sudo apt update -y
-  sudo apt install -y python-minimal
+  sudo apt install -y python3-minimal
 else
   which yum
   if [ $? = 0 ]

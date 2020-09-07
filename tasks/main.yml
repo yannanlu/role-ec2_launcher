@@ -1,5 +1,5 @@
 ---
-- include: query.yml     # query the instance
+- include: query_instance.yml
 
 - name: Set ec2_info
   set_fact:
@@ -18,40 +18,20 @@
     msg: "can not configure a non-running instance, please make sure all instances are running first"
   when: ec2_info|length < ec2_info_s|length
 
-- name: Get vpc subnet facts with profile in {{region}}
-  ec2_vpc_subnet_facts:
-    profile: "{{profile}}"
-    region: "{{region}}"
-    filters:
-      vpc_id: "{{vpc_id}}"
-  when: profile != 'tower' and subnet_ids|length == 0
-  register: vpc_info_p
+- include: "add_subnet_with_{{my_profile_name}}.yml"
+  when: subnet_ids|length == 0
 
-- name: Add the default subnet_id to subnet_ids in {{region}}
-  set_fact:
-    subnet_ids: "{{subnet_ids}} + ['{{vpc_info_1.subnets[0].id}}']"
-  when: vpc_info_p is changed
-
-- name: Get vpc subnet facts with tower in {{region}}
-  ec2_vpc_subnet_facts:
-    region: "{{region}}"
-    filters:
-      vpc_id: "{{vpc_id}}"
-  when: profile == 'tower' and subnet_ids|length == 0
-  register: vpc_info_k
-
-- name: Add the default subnet_id to subnet_ids in {{region}}
-  set_fact:
-    subnet_ids: "{{subnet_ids}} + ['{{vpc_info_1.subnets[0].id}}']"
-  when: vpc_info_k is changed
-
-- include: inventory.yml # add hosts to in-memory inventory
+- include: inventory.yml                # add hosts to in-memory inventory
   when: ec2_info|length > 0
 
-- include: create.yml    # create instances if they are not there
+- include: create.yml                   # create instances if they are not there
   when: ec2_info|length == 0
 
 - include: query_sg.yml
+
+- name: Set ec2_subnet_info
+  set_fact:
+    ec2_subnet_info: []
 
 - include: query_subnet.yml
   vars:
